@@ -738,6 +738,7 @@ function escHtml(s){return String(s).replace(/&/g,’&’).replace(/</g,’<’)
 function sortShifts(k){if(state[k])state[k].sort((a,b)=>a.shift===‘D’&&b.shift===‘N’?-1:a.shift===‘N’&&b.shift===‘D’?1:0);}
 
 function renderAll(){
+try{
 buildFilterBar();
 const container=document.getElementById(‘calendars-container’);
 container.innerHTML=’’;
@@ -761,6 +762,10 @@ ${READ_ONLY?'':'<div class="hint">✦ arraste para mover · toque no nome para e
     const cells=custom?getMaioCells():buildCells(year,month0,prefix);
     renderCalendar(calEl,cells);
   });
+  }catch(err){
+    console.error('renderAll error:',err);
+    document.getElementById('calendars-container').innerHTML=`<div style="padding:24px;color:#e05555;font-size:12px;">Erro ao renderizar: ${err.message}<br><br><button onclick="location.reload()" style="padding:8px 16px;background:var(--accent);color:#000;border:none;border-radius:8px;cursor:pointer;font-size:12px;">Recarregar</button></div>`;
+  }
 }
 
 function renderCalendar(calEl,cells){
