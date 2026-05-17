@@ -216,6 +216,19 @@ body::after{display:none;}
 <div class="filter-bar" id="filter-bar">
   <span class="filter-bar-label">Filtrar:</span>
 </div>
+<template id="admin-buttons-template">
+    <button class="tbtn tbtn-theme" onclick="toggleTheme()">🌚</button>
+    <button class="tbtn tbtn-cfg" onclick="openPeopleConfig()">⚙️ Pessoas</button>
+    <button class="tbtn tbtn-summary" onclick="openSummary()">📊 Resumo</button>
+    <button class="tbtn tbtn-summary" style="background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.3);color:#34d399;" onclick="openHistory()">🕓 Histórico</button>
+    <button class="tbtn tbtn-summary" style="background:rgba(245,168,124,.1);border-color:rgba(245,168,124,.3);color:#f5a87c;" onclick="openPaymentHistorySheet()">💰 Pagamentos</button>
+    <button class="tbtn tbtn-summary" style="background:rgba(229,114,114,.1);border-color:rgba(229,114,114,.3);color:#e57272;" onclick="openAbsenceReport()">⚠️ Ausências</button>
+    <button class="tbtn tbtn-summary" style="background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.3);color:#25d366;" onclick="openMonthWASheet()">📲 WhatsApp Mês</button>
+    <button class="tbtn tbtn-summary" style="background:rgba(144,202,249,.1);border-color:rgba(144,202,249,.3);color:#90caf9;" onclick="openReminderSheet()">🔔 Lembrete</button>
+    <button class="tbtn tbtn-share" onclick="shareReadOnly()">🔗 Compartilhar</button>
+    <button class="tbtn tbtn-pub" id="pub-btn" onclick="publishData()" disabled>💾 Publicar</button>
+    <button class="tbtn tbtn-print" onclick="window.print()">🖨️ Imprimir</button>
+</template>
 <div id="calendars-container"></div>
 <div class="overlay" id="overlay"><div class="sheet"><div class="sheet-handle"></div><div class="sheet-day-label" id="sheet-day-label"></div><div class="sheet-title" id="sheet-title"></div><div id="sheet-body"></div></div></div>
 <div class="confirm-overlay" id="confirm-overlay"><div class="confirm-box"><div class="cb-ico">📋</div><div class="cb-title" id="cb-title">Mover?</div><div class="cb-sub" id="cb-sub"></div><div class="cb-btns"><button class="cb-no" id="cb-no">Cancelar</button><button class="cb-yes" id="cb-yes">Confirmar</button></div></div></div>
@@ -226,8 +239,9 @@ const BIN_ID='6a0799beadc21f119aa7b35f';
 const BIN_URL=`https://api.jsonbin.io/v3/b/${BIN_ID}`;
 const ADMIN_PASS='babalu';
 const params=new URLSearchParams(window.location.search);
-const isAdmin=params.get('admin')===ADMIN_PASS;
-const READ_ONLY=!isAdmin;
+// Auth via URL param OR sessionStorage (login without URL change)
+const isAdmin=params.get('admin')===ADMIN_PASS||sessionStorage.getItem('escala_admin')===ADMIN_PASS;
+let READ_ONLY=!isAdmin;
 let isDirty=false,activeFilter='TODOS',waContacts={};
 const DAYS_PT=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const PRESET_COLORS=['#e8c97a','#72e5a8','#a99ef5','#f5a87c','#f0a0d0','#80c8f0','#f87171','#60a5fa','#34d399','#fbbf24','#e879f9','#fb923c'];
@@ -793,7 +807,28 @@ function promptAdminLogin(){
     const fg=document.createElement('div');fg.className='form-group';const lbl=document.createElement('div');lbl.className='form-label';lbl.textContent='Senha';
     const inp=document.createElement('input');inp.type='password';inp.className='text-input';inp.placeholder='••••••••';fg.appendChild(lbl);fg.appendChild(inp);body.appendChild(fg);
     const btn=document.createElement('button');btn.className='confirm-btn';btn.textContent='🔐 Entrar';
-    btn.onclick=()=>{if(inp.value===ADMIN_PASS){const url=new URL(window.location.href);url.searchParams.set('admin',ADMIN_PASS);url.searchParams.delete('view');window.location.href=url.toString();}else{inp.value='';inp.style.borderColor='var(--pend-light)';showToast('⚠️ Senha incorreta');setTimeout(()=>inp.style.borderColor='',1500);}};
+    btn.onclick=()=>{
+      if(inp.value===ADMIN_PASS){
+        sessionStorage.setItem('escala_admin',ADMIN_PASS);
+        READ_ONLY=false;
+        closeSheet();
+        document.body.classList.remove('light');
+        // Restore admin top bar
+        const tbr=document.getElementById('top-bar-right');
+        const tmpl=document.getElementById('admin-buttons-template');
+        if(tbr&&tmpl)tbr.innerHTML=tmpl.innerHTML;
+        // Show filter bar
+        const fb=document.getElementById('filter-bar');if(fb)fb.style.display='';
+        // Enable publish button
+        setTimeout(()=>{const pb=document.getElementById('pub-btn');if(pb)pb.disabled=false;},100);
+        renderAll();
+        showToast('✅ Logado como admin!');
+      }else{
+        inp.value='';inp.style.borderColor='var(--pend-light)';
+        showToast('⚠️ Senha incorreta');
+        setTimeout(()=>inp.style.borderColor='',1500);
+      }
+    };
     inp.addEventListener('keydown',e=>{if(e.key==='Enter')btn.click();});body.appendChild(btn);setTimeout(()=>inp.focus(),320);
   });
 }
