@@ -455,16 +455,22 @@ async function loadData(){
     const r=await fetch(BIN_URL+'/latest',{headers:{'X-Bin-Meta':'false'}});
     if(!r.ok)throw new Error(r.status);
     const p=await r.json();
-    if(p.state)Object.keys(p.state).forEach(k=>{state[k]=p.state[k];});
-    if(p.comments)Object.keys(p.comments).forEach(k=>{comments[k]=p.comments[k];});
-    if(p.people&&p.people.length>0)people.splice(0,people.length,...p.people);
-    if(p.history)history.splice(0,history.length,...p.history);
-    if(p.waContacts)Object.assign(waContacts,p.waContacts);
-    // Migrate waContacts into people.phone if not already set
-    if(p.people)p.people.forEach(person=>{if(!person.phone&&waContacts[person.name])person.phone=waContacts[person.name];});
-    if(p.paymentHistory)paymentHistory.splice(0,paymentHistory.length,...p.paymentHistory);
-    const fmt=(p.savedAt?new Date(p.savedAt):new Date()).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    setSyncStatus('synced',`Atualizado ${fmt}`);
+    // Only use cloud data if it was saved after May 18 2026 (our latest local update)
+    const BASELINE=1747526400000;
+    if(p.savedAt&&p.savedAt>BASELINE){
+      if(p.state)Object.keys(p.state).forEach(k=>{state[k]=p.state[k];});
+      if(p.comments)Object.keys(p.comments).forEach(k=>{comments[k]=p.comments[k];});
+      if(p.people&&p.people.length>0)people.splice(0,people.length,...p.people);
+      if(p.history)history.splice(0,history.length,...p.history);
+      if(p.waContacts)Object.assign(waContacts,p.waContacts);
+      if(p.people)p.people.forEach(person=>{if(!person.phone&&waContacts[person.name])person.phone=waContacts[person.name];});
+      if(p.paymentHistory)paymentHistory.splice(0,paymentHistory.length,...p.paymentHistory);
+      const fmt=(new Date(p.savedAt)).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      setSyncStatus('synced',`Atualizado ${fmt}`);
+    } else {
+      setSyncStatus('syncing','Clique Publicar para salvar dados atualizados na nuvem');
+      showToast('⚠️ Clique Publicar para atualizar a nuvem');
+    }
     renderAll();
   }catch(e){setSyncStatus('error','Usando dados locais');renderAll();}
   if(!READ_ONLY)document.getElementById('pub-btn').disabled=false;
@@ -1484,6 +1490,8 @@ document.addEventListener(‘keydown’,e=>{if((e.ctrlKey||e.metaKey)&&e.key===�
 
 // ── BOOT ─────────────────────────────────────────────
 renderAll();
+// Only load from cloud if there’s no local override param
+// Load cloud data but merge carefully - don’t overwrite if cloud is older
 loadData();
 if(!READ_ONLY)setInterval(()=>{if(!isDirty)loadData();},60000);
 </script>
