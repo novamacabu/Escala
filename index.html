@@ -771,7 +771,7 @@ function buildMiniCalHTML(cfg,filterName){
       // Show filter person highlighted + all others dimmed
       allShifts.forEach(function(s){
         var isMain=s.name===filterName;
-        var style=isMain?'font-weight:700;':'opacity:0.5;';
+        var style=isMain?'font-weight:700;border:1.5px solid #444;border-radius:4px;padding:1px 3px;':'opacity:0.5;';
         html+='<div class="mini-person '+(s.shift==='D'?'d-shift':'n-shift')+'" style="'+style+'">'+s.name+'</div>';
       });
     } else {
@@ -808,7 +808,31 @@ function printMultiMonth(prefixes,filterName){
     var cfg=MONTHS_CONFIG.find(function(m){return m.prefix===prefix;});if(!cfg)return;
     var calFilter=namesArr&&namesArr.length===1?namesArr[0]:null;
     html+='<div class="month-section"><h2>'+cfg.label+' 2026</h2>';
-    html+=buildMiniCalHTML(cfg,calFilter);
+    // Build mini calendar inline with current state data
+    var CAL_DAYS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    html+='<div class="mini-cal">';
+    CAL_DAYS.forEach(function(d,i){html+='<div class="mini-cal-hdr'+(i===0?' dom':'')+'">'+d+'</div>';});
+    var fd2=new Date(cfg.year,cfg.month0,1).getDay();
+    var dim2=new Date(cfg.year,cfg.month0+1,0).getDate();
+    var todayD=new Date();
+    for(var ei=0;ei<fd2;ei++)html+='<div class="mini-day empty"></div>';
+    for(var d2=1;d2<=dim2;d2++){
+      var key2=cfg.prefix+'-'+String(d2).padStart(2,'0');
+      var allSh=state[key2]||[];
+      var pSh=calFilter?allSh.filter(function(s){return s.name===calFilter;}):allSh;
+      var hasD2=pSh.some(function(s){return s.shift==='D';});
+      var hasN2=pSh.some(function(s){return s.shift==='N';});
+      var isToday2=todayD.getFullYear()===cfg.year&&todayD.getMonth()===cfg.month0&&todayD.getDate()===d2;
+      var cls2='mini-day'+(hasD2&&hasN2?' has-dn':hasD2?' has-d':hasN2?' has-n':'')+(isToday2?' today-hl':'');
+      html+='<div class="'+cls2+'"><div class="mini-day-num">'+d2+'</div><div class="mini-day-dow">'+CAL_DAYS[new Date(cfg.year,cfg.month0,d2).getDay()]+'</div>';
+      allSh.forEach(function(s){
+        var isMain=calFilter&&s.name===calFilter;
+        var st=isMain?'font-weight:700;border:1.5px solid #444;border-radius:4px;padding:1px 3px;':(calFilter?'opacity:0.5;':'');
+        html+='<div class="mini-person '+(s.shift==='D'?'d-shift':'n-shift')+'" style="'+st+'">'+s.name+'</div>';
+      });
+      html+='</div>';
+    }
+    html+='</div>';
     var allRows=buildSummaryData(prefix,cfg.label);
     var displayRows=namesArr?allRows.filter(function(r){return namesArr.indexOf(r.p.name)>=0;}):allRows;
     if(!displayRows.length){html+='<p style="color:#888;">Sem turnos registrados.</p></div>';return;}
