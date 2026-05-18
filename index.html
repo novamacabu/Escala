@@ -793,43 +793,44 @@ function getCompanion(key, shift, personName){
   return companion.map(function(s){return s.name;}).join(', ');
 }
 
+var REPORT_EXCLUDED=['Mãe','Pai'];
 function printMultiMonth(prefixes,filterName){
+  // filterName: null=all, string=one, array=multiple
+  var namesArr=filterName===null||filterName===undefined?null:(Array.isArray(filterName)?filterName:[filterName]);
   var CSS=getReportCSS();
+  var title=namesArr?namesArr.join(', '):'Todos os Cuidadores';
   var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Escala Cuidadores 2026</title><style>'+CSS+'</style></head><body>';
-  html+='<h1>Escala de Cuidadores 2026'+(filterName?' — '+filterName:'')+'</h1>';
+  html+='<h1>Escala de Cuidadores 2026'+(namesArr?' — '+title:'')+'</h1>';
   html+='<p style="color:#888;font-size:11px;margin-bottom:16px;">Gerado em '+new Date().toLocaleString('pt-BR')+'</p>';
   prefixes.forEach(function(prefix){
     var cfg=MONTHS_CONFIG.find(function(m){return m.prefix===prefix;});if(!cfg)return;
+    var calFilter=namesArr&&namesArr.length===1?namesArr[0]:null;
     html+='<div class="month-section"><h2>'+cfg.label+' 2026</h2>';
-    html+=buildMiniCalHTML(cfg,filterName||null);
-    if(filterName){
-      // Show only selected person with companion info
-      var rows=buildSummaryData(prefix,cfg.label);
-      var personRows=rows.filter(function(r){return r.p.name===filterName;});
-      if(!personRows.length){html+='<p style="color:#888;">Sem turnos.</p></div>';return;}
-      var row=personRows[0];
-      html+='<table><thead><tr><th style="background:#fffbef;color:#9a6800;" colspan="4">★ '+filterName+'</th></tr>';
-      html+='<tr><th>Dia</th><th>Dia da Semana</th><th>Turno</th><th>Pagamento</th></tr></thead><tbody>';
-      row.days.forEach(function(d){
-        var bg=d.shift==='D'?'background:#fffbef':'background:#eff6ff';
-        html+='<tr style="'+bg+'"><td>'+d.day+'/'+monthShortFromPrefix(prefix)+'</td><td>'+d.dow+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';
-      });
-      html+='<tr class="total-row"><td colspan="4" style="text-align:right;">Total: '+row.days.length+' turnos &nbsp;|&nbsp; '+(row.dP+row.nP)+' pago(s) &nbsp;|&nbsp; '+(row.dPe+row.nPe)+' pendente(s)</td></tr>';
-      html+='</tbody></table>';
-    } else {
-      // Show all people
-      var rows2=buildSummaryData(prefix,cfg.label);
-      rows2.forEach(function(row){
-        html+='<div class="person-card"><table><thead><tr><th colspan="4">'+row.p.name+'</th></tr>';
+    html+=buildMiniCalHTML(cfg,calFilter);
+    var allRows=buildSummaryData(prefix,cfg.label);
+    var displayRows=namesArr?allRows.filter(function(r){return namesArr.indexOf(r.p.name)>=0;}):allRows;
+    if(!displayRows.length){html+='<p style="color:#888;">Sem turnos registrados.</p></div>';return;}
+    displayRows.forEach(function(row){
+      var isExcluded=REPORT_EXCLUDED.indexOf(row.p.name)>=0;
+      var hl=namesArr&&namesArr.length===1;
+      html+='<div class="person-card"><table><thead><tr><th colspan="4" style="'+(hl?'background:#fffbef;color:#9a6800;':'')+'">'+(hl?'★ ':'')+row.p.name+'</th></tr>';
+      if(isExcluded){
+        html+='<tr><th>Dia</th><th>Dia da Semana</th><th colspan="2">Turno</th></tr></thead><tbody>';
+        row.days.forEach(function(d){
+          var bg=d.shift==='D'?'background:#fffbef':'background:#eff6ff';
+          html+='<tr style="'+bg+'"><td>'+d.day+'/'+monthShortFromPrefix(prefix)+'</td><td>'+d.dow+'</td><td colspan="2">'+(d.shift==='D'?'Diurno':'Noturno')+'</td></tr>';
+        });
+        html+='<tr class="total-row"><td colspan="4" style="text-align:right;">Total: '+row.days.length+' turno(s)</td></tr>';
+      } else {
         html+='<tr><th>Dia</th><th>Dia da Semana</th><th>Turno</th><th>Pagamento</th></tr></thead><tbody>';
         row.days.forEach(function(d){
           var bg=d.shift==='D'?'background:#fffbef':'background:#eff6ff';
           html+='<tr style="'+bg+'"><td>'+d.day+'/'+monthShortFromPrefix(prefix)+'</td><td>'+d.dow+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';
         });
-        html+='<tr class="total-row"><td colspan="4" style="text-align:right;">Total: '+row.days.length+' turnos &nbsp;|&nbsp; '+(row.dP+row.nP)+' pago(s) &nbsp;|&nbsp; '+(row.dPe+row.nPe)+' pend.</td></tr>';
-        html+='</tbody></table></div>';
-      });
-    }
+        html+='<tr class="total-row"><td colspan="4" style="text-align:right;">Total: '+row.days.length+' turnos &nbsp;|&nbsp; '+(row.dP+row.nP)+' pago(s) &nbsp;|&nbsp; '+(row.dPe+row.nPe)+' pendente(s)</td></tr>';
+      }
+      html+='</tbody></table></div>';
+    });
     html+='</div>';
   });
   html+='<br><div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">';
@@ -958,8 +959,15 @@ function openMonthWASheet(){
     // PDF + WhatsApp buttons
     const pdfBtn=document.createElement('button');pdfBtn.className='confirm-btn';pdfBtn.style.cssText='background:#1a4a7a;color:#fff;margin-bottom:8px;';pdfBtn.textContent='📄 Gerar PDF da Escala';
     pdfBtn.onclick=()=>{
-      const selName=selectedPeople.size===1?[...selectedPeople][0]:(sendAll?null:null);
-      gerarPDFEscala(cfg,selName); // passes current cfg (selected month)
+      if(sendAll||selectedPeople.size===0){
+        // Show all non-excluded people
+        printMultiMonth([cfg.prefix],null);
+      } else if(selectedPeople.size===1){
+        printMultiMonth([cfg.prefix],[...selectedPeople][0]);
+      } else {
+        // Multiple selected - generate one PDF with all selected
+        printMultiMonth([cfg.prefix],[...selectedPeople]);
+      }
     };
     body.appendChild(pdfBtn);
 
