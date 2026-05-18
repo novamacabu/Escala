@@ -771,7 +771,7 @@ function buildMiniCalHTML(cfg,filterName){
       // Show filter person highlighted + all others dimmed
       allShifts.forEach(function(s){
         var isMain=s.name===filterName;
-        var style=isMain?'font-weight:700;border:1.5px solid #444;border-radius:4px;padding:1px 3px;':'opacity:0.5;';
+        var style=isMain?'font-weight:700;color:#222;':'opacity:0.5;';
         html+='<div class="mini-person '+(s.shift==='D'?'d-shift':'n-shift')+'" style="'+style+'">'+s.name+'</div>';
       });
     } else {
@@ -827,7 +827,7 @@ function printMultiMonth(prefixes,filterName){
       html+='<div class="'+cls2+'"><div class="mini-day-num">'+d2+'</div><div class="mini-day-dow">'+CAL_DAYS[new Date(cfg.year,cfg.month0,d2).getDay()]+'</div>';
       allSh.forEach(function(s){
         var isMain=calFilter&&s.name===calFilter;
-        var st=isMain?'font-weight:700;':(calFilter?'opacity:0.5;':'');
+        var st=isMain?'font-weight:700;color:#222;':(calFilter?'opacity:0.5;':'');
         html+='<div class="mini-person '+(s.shift==='D'?'d-shift':'n-shift')+'" style="'+st+'">'+s.name+'</div>';
       });
       html+='</div>';
