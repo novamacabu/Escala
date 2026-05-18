@@ -232,9 +232,8 @@ body::after{display:none;}
   <div class="top-bar-right" id="top-bar-right">
     <button class="tbtn tbtn-theme" onclick="toggleTheme()">📴</button>
     <button class="tbtn tbtn-cfg" onclick="openPeopleConfig()">⚙️ Pessoas</button>
-    <button class="tbtn tbtn-summary" style="background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.3);color:#25d366;" onclick="openMonthWASheet()">📲 WhatsApp Mês</button>
+    <button class="tbtn tbtn-summary" style="background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.3);color:#25d366;" onclick="openMonthWASheet()">🖨️ Imprimir</button>
     <button class="tbtn tbtn-share" onclick="shareReadOnly()">🔗 Compartilhar</button>
-    <button class="tbtn tbtn-print" onclick="openPrintMonthSelector()">🖨️ Imprimir</button>
     <button class="tbtn" onclick="logoutAdmin()" style="background:rgba(229,114,114,.1);border-color:rgba(229,114,114,.3);color:#e57272;">🚪 Sair</button>
   </div>
 </div>
@@ -244,9 +243,8 @@ body::after{display:none;}
 <template id="admin-buttons-template">
     <button class="tbtn tbtn-theme" onclick="toggleTheme()">📴</button>
     <button class="tbtn tbtn-cfg" onclick="openPeopleConfig()">⚙️ Pessoas</button>
-    <button class="tbtn tbtn-summary" style="background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.3);color:#25d366;" onclick="openMonthWASheet()">📲 WhatsApp Mês</button>
+    <button class="tbtn tbtn-summary" style="background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.3);color:#25d366;" onclick="openMonthWASheet()">🖨️ Imprimir</button>
     <button class="tbtn tbtn-share" onclick="shareReadOnly()">🔗 Compartilhar</button>
-    <button class="tbtn tbtn-print" onclick="openPrintMonthSelector()">🖨️ Imprimir</button>
     <button class="tbtn" onclick="logoutAdmin()" style="background:rgba(229,114,114,.1);border-color:rgba(229,114,114,.3);color:#e57272;">🚪 Sair</button>
 </template>
 <div id="calendars-container"></div>
@@ -922,7 +920,7 @@ function openAbsenceReport(){
   });
 }
 function openMonthWASheet(){
-  openSheet('WhatsApp','Enviar Escala do Mês',body=>{
+  openSheet('Imprimir','Imprimir / Gerar PDF',body=>{
     const now=new Date();let cfg=MONTHS_CONFIG.find(m=>m.month0===now.getMonth()&&m.year===now.getFullYear())||MONTHS_CONFIG[0];
     // Month selector
     const fgM=document.createElement('div');fgM.className='form-group';const lM=document.createElement('div');lM.className='form-label';lM.textContent='Mês';
@@ -941,7 +939,7 @@ function openMonthWASheet(){
     people.forEach(p=>{
       const opt=document.createElement('div');opt.className='person-opt';opt.textContent=p.name;opt.style.color=p.color;
       const chk=document.createElement('span');chk.style.cssText='position:absolute;top:4px;right:6px;font-size:10px;opacity:0;';chk.textContent='✓';opt.appendChild(chk);
-      opt.onclick=()=>{sendAll=false;allOpt.style.borderColor='';allOpt.style.background='';if(selectedPeople.has(p.name)){selectedPeople.delete(p.name);opt.style.borderColor='';opt.style.background='';chk.style.opacity='0';}else{selectedPeople.add(p.name);opt.style.borderColor=p.color;opt.style.background=p.color+'22';chk.style.opacity='1';}if(selectedPeople.size===1)ta.value=buildMessage([...selectedPeople][0]);else ta.value=buildMessage(null);updateSendBtn();};
+      opt.onclick=()=>{sendAll=false;allOpt.style.borderColor='';allOpt.style.background='';if(selectedPeople.has(p.name)){selectedPeople.delete(p.name);opt.style.borderColor='';opt.style.background='';chk.style.opacity='0';}else{selectedPeople.add(p.name);opt.style.borderColor=p.color;opt.style.background=p.color+'22';chk.style.opacity='1';}if(selectedPeople.size===1){const nm=[...selectedPeople][0];ta.value=buildMessage(nm);const num=getPhone(nm);if(num)phoneInp.value=num;}else{ta.value=buildMessage(null);phoneInp.value='';}updateSendBtn();};
       grid.appendChild(opt);
     });
     const allOpt=document.createElement('div');allOpt.className='person-opt';allOpt.style.cssText='color:var(--accent);grid-column:1/-1;position:relative;';
@@ -952,7 +950,7 @@ function openMonthWASheet(){
     clrBtn.onclick=()=>{sendAll=false;selectedPeople.clear();grid.querySelectorAll('.person-opt').forEach(o=>{o.style.borderColor='';o.style.background='';const c=o.querySelector('span');if(c)c.style.opacity='0';});phoneInp.value='';ta.value=buildMessage(null);sendBtn.textContent='📲 Enviar via WhatsApp';};
     fg1.appendChild(l1);fg1.appendChild(grid);fg1.appendChild(clrBtn);body.appendChild(fg1);
     // Phone
-    const fg2=document.createElement('div');fg2.className='form-group';const l2=document.createElement('div');l2.className='form-label';l2.textContent='Número (opcional)';
+    const fg2=document.createElement('div');fg2.className='form-group';const l2=document.createElement('div');l2.className='form-label';l2.textContent='Número';
     const phoneInp=document.createElement('input');phoneInp.type='tel';phoneInp.className='text-input';phoneInp.placeholder='5511999999999';fg2.appendChild(l2);fg2.appendChild(phoneInp);body.appendChild(fg2);
     // Preview
     const fg3=document.createElement('div');fg3.className='form-group';const l3=document.createElement('div');l3.className='form-label';l3.textContent='Mensagem';
@@ -965,6 +963,15 @@ function openMonthWASheet(){
     };
     body.appendChild(pdfBtn);
 
+    // WhatsApp send button
+    const waBtn=document.createElement('button');waBtn.className='confirm-btn';waBtn.style.cssText='background:#25d366;color:#fff;margin-bottom:8px;';waBtn.textContent='📲 Enviar link pelo WhatsApp';
+    waBtn.onclick=()=>{
+      const num=(phoneInp.value||'').replace(/\D/g,'');
+      if(!num){showToast('Digite o número');return;}
+      const msg=ta.value;
+      window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg),'_blank');
+    };
+    body.appendChild(waBtn);
     const cancelWA=document.createElement('button');cancelWA.className='cancel-btn';cancelWA.textContent='✕ Fechar';cancelWA.onclick=closeSheet;body.appendChild(cancelWA);
   });
 }
