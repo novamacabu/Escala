@@ -872,24 +872,8 @@ function openMonthWASheet(){
     const grid=document.createElement('div');grid.className='person-grid';
     let selPerson=null,selectedPeople=new Set(),sendAll=false;
     function buildMessage(name){
-      const cells=cfg.custom?getMaioCells():buildCells(cfg.year,cfg.month0,cfg.prefix);
-      let msg=`📅 *Escala ${cfg.label} 2026*
-`;if(name)msg+=`👤 *${name}*
-`;msg+='\n';
-      let hasAny=false;
-      cells.forEach(cell=>{
-        if(!cell||cell.empty)return;
-        const shifts=(state[cell.key]||[]).filter(s=>!name||s.name===name);
-        if(!shifts.length)return;hasAny=true;
-        msg+=`*${cell.label}/${cfg.label.substring(0,3)} (${DAYS_PT[cell.dow]})*
-`;
-        shifts.forEach(s=>{msg+=`  ${s.shift==='D'?'☀️':'🌚'} — ${s.name} ${s.paid?'✅':'❌'}
-`;});
-      });
-      if(!hasAny)msg+=`_(Sem lançamentos)_
-`;
-      msg+=`
-🔗 ${window.location.href.split('?')[0]}?view=1`;return msg;
+      const baseUrl=window.location.href.split('?')[0]+'?view=1';
+      return '*Escala Cuidadores*\n🔗 '+baseUrl;
     }
     people.forEach(p=>{
       const opt=document.createElement('div');opt.className='person-opt';opt.textContent=p.name;opt.style.color=p.color;
