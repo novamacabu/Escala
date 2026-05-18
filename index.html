@@ -443,7 +443,7 @@ function getMaioCells(){
   const rem=cells.length%7;if(rem)for(let i=0;i<7-rem;i++)cells.push(null);
   return cells;
 }
-function hasConflict(key){const s=state[key]||[];return s.filter(x=>x.shift==='D').length>1||s.filter(x=>x.shift==='N').length>1;}
+function hasConflict(key){if(key.startsWith('apr-'))return false;const s=state[key]||[];return s.filter(x=>x.shift==='D').length>1||s.filter(x=>x.shift==='N').length>1;}
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function sortShifts(k){if(state[k])state[k].sort((a,b)=>a.shift==='D'&&b.shift==='N'?-1:1);}
 function renderAll(){
@@ -749,15 +749,17 @@ function printMultiMonth(prefixes,filterName){
     var cfg=MONTHS_CONFIG.find(function(m){return m.prefix===prefix;});if(!cfg)return;
     var rows=buildSummaryData(prefix,cfg.label);
     var filtered=filterName?rows.filter(function(r){return r.p.name===filterName;}):rows;
-    html+='<h2>'+cfg.label+' 2026</h2>';
-    if(!filtered.length){html+='<p style="color:#888;font-style:italic;">Nenhum turno registrado.</p>';return;}
+    html+='<div class="month-section"><h2>'+cfg.label+' 2026</h2>';
+    if(!filtered.length){html+='<p style="color:#888;font-style:italic;">Nenhum turno registrado.</p></div>';return;}
     filtered.forEach(function(row){
       var p=row.p,dT=row.dT,nT=row.nT,dP=row.dP,nP=row.nP,dPe=row.dPe,nPe=row.nPe,days=row.days;
-      html+='<div class="card"><table><thead><tr><th colspan="4">'+p.name+'</th></tr><tr><th>Dia</th><th>Dia da Semana</th><th>Turno</th><th>Pagamento</th></tr></thead><tbody>';
-      days.forEach(function(d){html+='<tr><td>'+d.day+'</td><td>'+d.dow+'</td><td>'+(d.shift==='D'?'Diurno (manha)':'Noturno')+'</td><td style="color:'+(d.paid?'#1a7a4a':'#c0392b')+';font-weight:700;">'+(d.paid?'Pago':'Pendente')+'</td></tr>';});
-      html+='<tr class="total-row"><td colspan="2">TOTAL</td><td>'+(dT+nT)+' turno(s)</td><td>'+(dP+nP)+' pago(s) | '+(dPe+nPe)+' pendente(s)</td></tr>';
+      var isHL=filterName&&p.name===filterName;
+      html+='<div class="person-card"><table><thead><tr><th colspan="4" style="'+(isHL?'background:#fffbef;color:#9a6800;':'')+'">'+( isHL?'★ ':'')+p.name+'</th></tr><tr><th style="width:10%">Dia</th><th style="width:25%">Dia da Semana</th><th style="width:30%">Turno</th><th style="width:35%">Pagamento</th></tr></thead><tbody>';
+      days.forEach(function(d){var cls=isHL?' class="highlight"':'';html+='<tr'+cls+'><td>'+d.day+'</td><td>'+d.dow+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';});
+      html+='<tr class="total-row"><td colspan="2">TOTAL</td><td>'+(dT+nT)+' turno(s)</td><td>'+(dP+nP)+' pago(s) · '+(dPe+nPe)+' pend.</td></tr>';
       html+='</tbody></table></div>';
     });
+    html+='</div>';
   });
   html+='<br><button onclick="window.print()" style="padding:12px 28px;background:#9a6800;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Imprimir / Salvar PDF</button></body></html>';
   // Create hidden iframe to print without popup
@@ -911,8 +913,8 @@ function openMonthWASheet(){
     // PDF + WhatsApp buttons
     const pdfBtn=document.createElement('button');pdfBtn.className='confirm-btn';pdfBtn.style.cssText='background:#1a4a7a;color:#fff;margin-bottom:8px;';pdfBtn.textContent='📄 Gerar PDF da Escala';
     pdfBtn.onclick=()=>{
-      const selName=selectedPeople.size===1?[...selectedPeople][0]:sendAll?null:null;
-      gerarPDFEscala(cfg,selName);
+      const selName=selectedPeople.size===1?[...selectedPeople][0]:(sendAll?null:null);
+      gerarPDFEscala(cfg,selName); // passes current cfg (selected month)
     };
     body.appendChild(pdfBtn);
 
@@ -932,7 +934,7 @@ function openMonthWASheet(){
 }
 
 function gerarPDFEscala(cfg,filterName){
-  const css='body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:16px;}h1{font-size:20px;color:#9a6800;margin-bottom:4px;}h2{font-size:13px;color:#555;border-bottom:2px solid #ddd;padding-bottom:4px;margin:16px 0 6px;}table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:10px;}th{background:#f5f0e8;text-align:left;padding:5px 8px;border:1px solid #ddd;font-weight:700;}td{padding:5px 8px;border:1px solid #ddd;}tr:nth-child(even){background:#fafafa;}.ok{color:#1a7a4a;font-weight:700;}.pend{color:#c0392b;font-weight:700;}.total-row{font-weight:700;background:#f0ece0!important;}.highlight{background:#fffbef!important;border-left:4px solid #9a6800!important;font-weight:700;}.highlight td{font-weight:700;}@media print{@page{size:A4 portrait;margin:12mm;}button{display:none!important;}}';
+  const css='body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:16px;}h1{font-size:18px;color:#9a6800;margin-bottom:4px;}h2{font-size:13px;color:#555;border-bottom:2px solid #ddd;padding-bottom:4px;margin:16px 0 6px;page-break-before:auto;}table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:10px;table-layout:fixed;}th{background:#f5f0e8;text-align:left;padding:5px 8px;border:1px solid #ddd;font-weight:700;word-wrap:break-word;}td{padding:5px 8px;border:1px solid #ddd;word-wrap:break-word;}.ok{color:#1a7a4a;font-weight:700;}.pend{color:#c0392b;font-weight:700;}.total-row{font-weight:700;background:#f0ece0!important;}.highlight{background:#fffbef!important;border-left:4px solid #9a6800!important;}.month-section{page-break-inside:avoid;margin-bottom:24px;}.person-card{page-break-inside:avoid;margin-bottom:16px;}@media print{@page{size:A4 portrait;margin:12mm;}button{display:none!important;}body{font-size:10px;}.month-section{page-break-before:auto;}}';
   // Always show ALL people, highlight selected
   const rows=buildSummaryData(cfg.prefix,cfg.label);
   let html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Escala '+cfg.label+' 2026</title><style>'+css+'</style></head><body>';
@@ -942,15 +944,16 @@ function gerarPDFEscala(cfg,filterName){
   if(!rows.length){html+='<p style="color:#888;">Nenhum turno registrado para este mês.</p>';}
   rows.forEach(function(row){
     var p=row.p,dT=row.dT,nT=row.nT,dP=row.dP,nP=row.nP,dPe=row.dPe,nPe=row.nPe,days=row.days;
-    var isHighlight=filterName&&p.name===filterName;
-    html+='<h2 style="'+(isHighlight?'color:#9a6800;font-weight:900;':'')+'">'+(isHighlight?'★ ':'')+p.name+'</h2>';
-    html+='<table><thead><tr><th>Dia</th><th>Dia da Semana</th><th>Turno</th><th>Pagamento</th></tr></thead><tbody>';
+    var isHL=filterName&&p.name===filterName;
+    html+='<div style="page-break-inside:avoid;margin-bottom:16px;">';
+    html+='<h2 style="'+(isHL?'color:#9a6800;font-weight:900;font-size:15px;':'')+'">'+(isHL?'★ ':'')+p.name+'</h2>';
+    html+='<table style="table-layout:fixed;width:100%;"><thead><tr><th style="width:10%">Dia</th><th style="width:25%">Dia Sem.</th><th style="width:30%">Turno</th><th style="width:35%">Pagamento</th></tr></thead><tbody>';
     days.forEach(function(d){
-      var cls=isHighlight?'highlight':'';
-      html+='<tr class="'+cls+'"><td>'+d.day+'</td><td>'+d.dow+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';
+      var bg=isHL?'background:#fffbef;':'';
+      html+='<tr style="'+bg+'"><td>'+d.day+'</td><td>'+d.dow+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';
     });
-    html+='<tr class="total-row"><td colspan="2">Total</td><td>'+(dT+nT)+' turno(s)</td><td>'+(dP+nP)+' pago(s) · '+(dPe+nPe)+' pendente(s)</td></tr>';
-    html+='</tbody></table>';
+    html+='<tr class="total-row"><td colspan="2">Total</td><td>'+(dT+nT)+' turno(s)</td><td>'+(dP+nP)+' p · '+(dPe+nPe)+' pend.</td></tr>';
+    html+='</tbody></table></div>';
   });
   html+='<br><p style="color:#555;font-size:10px;">Salve como PDF e encaminhe pelo WhatsApp 📲</p>';
   html+='<br><button onclick="window.print()" style="padding:10px 24px;background:#9a6800;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">📄 Salvar como PDF</button></body></html>';
