@@ -506,10 +506,9 @@ function renderCalendar(calEl,cells){
 function makeBadge(shift,dayKey,idx){
   const b=document.createElement('div');
   const c=getColor(shift.name);
-  const shiftBorder=shift.shift==='D'?'#b8860b':'#1a4a7a';
   const shiftBg=shift.shift==='D'?'rgba(255,236,153,0.18)':'rgba(100,149,237,0.15)';
   b.className='badge '+(shift.paid?'paid-print':'pend-print');
-  b.style.cssText=`background:${shiftBg};color:${c};border-color:${shiftBorder};`;
+  b.style.cssText=`background:${shiftBg};color:${c};border-color:transparent;`;
   b.dataset.dayKey=dayKey;b.dataset.idx=idx;
   const _p=getPerson(shift.name);
   const av=document.createElement('span');av.className='av';
@@ -763,21 +762,20 @@ function printMultiMonth(prefixes,filterName){
   });
   html+='<br><button onclick="window.print()" style="padding:12px 28px;background:#9a6800;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Imprimir / Salvar PDF</button></body></html>';
   // Create hidden iframe to print without popup
-  var old=document.getElementById('print-frame');if(old)old.remove();
-  var iframe=document.createElement('iframe');
-  iframe.id='print-frame';
-  iframe.style.cssText='position:fixed;right:0;bottom:0;width:1px;height:1px;opacity:0;border:none;';
-  document.body.appendChild(iframe);
-  iframe.contentDocument.open();
-  iframe.contentDocument.write(html);
-  iframe.contentDocument.close();
-  setTimeout(function(){
-    try{iframe.contentWindow.focus();iframe.contentWindow.print();}
-    catch(e){
-      var w=window.open('','_blank');
-      if(w){w.document.write(html);w.document.close();}
-    }
-  },500);
+  // Open in new tab - user taps print from there
+  var w=window.open('about:blank','_blank');
+  if(w){
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  } else {
+    // Fallback: download as HTML file
+    var blob=new Blob([html],{type:'text/html;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download='escala.html';
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+  }
 }
 
 function printSummary(filterName){
@@ -941,16 +939,16 @@ function gerarPDFEscala(cfg,filterName){
   });
   html+='<br><p style="color:#555;font-size:10px;">Salve como PDF e encaminhe pelo WhatsApp 📲</p>';
   html+='<br><button onclick="window.print()" style="padding:10px 24px;background:#9a6800;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">📄 Salvar como PDF</button></body></html>';
-  var old=document.getElementById('print-frame');if(old)old.remove();
-  var iframe=document.createElement('iframe');iframe.id='print-frame';
-  iframe.style.cssText='position:fixed;right:0;bottom:0;width:1px;height:1px;opacity:0;border:none;';
-  document.body.appendChild(iframe);
-  iframe.contentDocument.open();iframe.contentDocument.write(html);iframe.contentDocument.close();
-  setTimeout(function(){
-    try{iframe.contentWindow.focus();iframe.contentWindow.print();}
-    catch(e){var w=window.open('','_blank');if(w){w.document.write(html);w.document.close();}}
-  },600);
-  showToast('📄 Gerando PDF — salve e encaminhe pelo WhatsApp');
+  var w=window.open('about:blank','_blank');
+  if(w){w.document.open();w.document.write(html);w.document.close();}
+  else{
+    var blob=new Blob([html],{type:'text/html;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download='escala-'+cfg.label+'.html';
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+  }
+  showToast('📄 Abrindo PDF — toque em Imprimir para salvar');
 }
 function openReminderSheet(){
   openSheet('Lembretes','Lembrete de Turno',body=>{
