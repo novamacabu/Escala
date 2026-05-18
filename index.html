@@ -177,11 +177,13 @@ body.light .sheet{background:#f0ede4;}
 .wa-contact-row input[type=tel]{background:var(--card);border:1px solid var(--border2);color:var(--text);font-family:'Georgia Pro','Georgia',serif;font-size:12px;padding:6px 10px;border-radius:8px;outline:none;width:140px;}
 .confirm-overlay{position:fixed;inset:0;z-index:9200;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s;padding:24px;}
 .confirm-overlay.open{opacity:1;pointer-events:all;}
-.confirm-box{background:#18182e;border-radius:18px;padding:28px 24px 20px;width:100%;max-width:360px;border:1px solid var(--border2);text-align:center;}
+.confirm-box{background:var(--card);border-radius:18px;padding:28px 24px 20px;width:100%;max-width:360px;border:1px solid var(--border2);text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.3);}
 .confirm-box .cb-ico{font-size:32px;margin-bottom:12px;}
 .confirm-box .cb-title{font-family:'Georgia Pro','Georgia',serif;font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px;}
 .confirm-box .cb-sub{font-size:11px;color:var(--muted);margin-bottom:20px;line-height:1.5;}
 .confirm-box .cb-sub b{color:var(--accent);}
+body.light .confirm-box{background:#fff;border-color:#d0d0d0;}
+body.light .cb-btns .cb-no{background:#f2f2f2;color:#555;}
 .cb-btns{display:flex;gap:10px;}
 .cb-btns button{flex:1;padding:12px;border-radius:12px;font-family:'Georgia Pro','Georgia',serif;font-size:13px;font-weight:800;border:none;cursor:pointer;}
 .cb-btns .cb-yes{background:var(--accent);color:#0b0b10;}
