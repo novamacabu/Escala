@@ -692,8 +692,8 @@ function buildSummaryData(prefix,label){
       if(!key.startsWith(prefix))return;
       (state[key]||[]).forEach(s=>{
         if(s.name!==p.name)return;
-        const dayNum=parseInt(key.split('-')[2]);
-        if(isNaN(dayNum))return;
+        const keyParts=key.split('-');
+        const dayNum=parseInt(keyParts[keyParts.length-1]);
         const dow=DAYS_PT[new Date(mCfg.year,mCfg.month0,dayNum).getDay()]||'';
         const dateLabel=dayNum+'/'+monthShort+' ('+dow+')';
         days.push({day:dayNum,dow,dateLabel,shift:s.shift,paid:s.paid});
