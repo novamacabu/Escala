@@ -684,6 +684,8 @@ function openEditPerson(idx,onDone){
 }
 function buildSummaryData(prefix,label){
   const rows=[];
+  const mCfg=MONTHS_CONFIG.find(function(m){return m.prefix===prefix;})||{year:2026,month0:4,label:label||'',prefix:prefix};
+  const monthShort=mCfg.label?mCfg.label.substring(0,3):'';
   people.forEach(p=>{
     let dT=0,nT=0,dP=0,nP=0,dPe=0,nPe=0;const days=[];
     Object.keys(state).forEach(key=>{
@@ -691,13 +693,14 @@ function buildSummaryData(prefix,label){
       (state[key]||[]).forEach(s=>{
         if(s.name!==p.name)return;
         const dayNum=parseInt(key.split('-')[2]);
-        const cfg=MONTHS_CONFIG.find(m=>m.prefix===prefix);
-        const dow=cfg?DAYS_PT[new Date(cfg.year,cfg.month0,dayNum).getDay()]:'';
-        const dateLabel=dayNum+'/'+cfg.label.substring(0,3)+' ('+dow+')';days.push({day:dayNum,dow,dateLabel,shift:s.shift,paid:s.paid});
+        if(isNaN(dayNum))return;
+        const dow=DAYS_PT[new Date(mCfg.year,mCfg.month0,dayNum).getDay()]||'';
+        const dateLabel=dayNum+'/'+monthShort+' ('+dow+')';
+        days.push({day:dayNum,dow,dateLabel,shift:s.shift,paid:s.paid});
         if(s.shift==='D'){dT++;s.paid?dP++:dPe++;}else{nT++;s.paid?nP++:nPe++;}
       });
     });
-    days.sort((a,b)=>a.day-b.day);
+    days.sort(function(a,b){return a.day-b.day;});
     if(dT+nT>0)rows.push({p,dT,nT,dP,nP,dPe,nPe,days,label});
   });
   return rows;
@@ -737,6 +740,10 @@ function openPrintMonthSelector(){
   });
 }
 
+function monthShortFromPrefix(prefix){
+  var c=MONTHS_CONFIG.find(function(m){return m.prefix===prefix;});
+  return c?c.label.substring(0,3):'';
+}
 function getReportCSS(){
   return 'body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:16px;}h1{font-size:20px;color:#9a6800;margin-bottom:4px;}h2{font-size:14px;color:#555;border-bottom:2px solid #ddd;padding-bottom:4px;margin:16px 0 8px;}.month-section{margin-bottom:24px;page-break-inside:avoid;}.person-card{margin-bottom:12px;page-break-inside:avoid;}table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:10px;}th{background:#f5f0e8;text-align:left;padding:5px 8px;border:1px solid #ddd;font-weight:700;}td{padding:5px 8px;border:1px solid #ddd;}.ok{color:#1a7a4a!important;font-weight:700;}.pend{color:#c0392b!important;font-weight:700;}.total-row{font-weight:700;background:#f0ece0!important;}.mini-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:10px;border:1px solid #ddd;border-radius:4px;overflow:hidden;font-size:9px;}.mini-cal-hdr{background:#f5f0e8;text-align:center;padding:3px 1px;font-weight:700;color:#555;}.mini-cal-hdr.dom{color:#c0392b;}.mini-day{padding:3px 2px;text-align:center;min-height:32px;border:1px solid #eee;}.mini-day.empty{background:#fafafa;}.mini-day.has-d{background:#fffbef;}.mini-day.has-n{background:#eff6ff;}.mini-day.has-dn{background:linear-gradient(135deg,#fffbef 50%,#eff6ff 50%);}.mini-day.today-hl{outline:2px solid #9a6800;}.mini-day-num{font-weight:700;font-size:9px;}.mini-person{font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:1px;}.d-shift{color:#7a5200;}.n-shift{color:#1a4a7a;}@media print{@page{size:A4 portrait;margin:12mm;}button{display:none!important;}}';
 }
@@ -751,16 +758,27 @@ function buildMiniCalHTML(cfg,filterName){
   var today=new Date();
   for(var d2=1;d2<=dim;d2++){
     var key=cfg.prefix+'-'+String(d2).padStart(2,'0');
-    var shifts=state[key]||[];
-    var filtered=filterName?shifts.filter(function(s){return s.name===filterName;}):shifts;
-    var hasD=filtered.some(function(s){return s.shift==='D';});
-    var hasN=filtered.some(function(s){return s.shift==='N';});
+    var allShifts=state[key]||[];
+    // Determine background based on filter person's shifts
+    var personShifts=filterName?allShifts.filter(function(s){return s.name===filterName;}):allShifts;
+    var hasD=personShifts.some(function(s){return s.shift==='D';});
+    var hasN=personShifts.some(function(s){return s.shift==='N';});
     var isToday=today.getFullYear()===cfg.year&&today.getMonth()===cfg.month0&&today.getDate()===d2;
+    var hasPerson=personShifts.length>0;
     var cls='mini-day'+(hasD&&hasN?' has-dn':hasD?' has-d':hasN?' has-n':'')+(isToday?' today-hl':'');
     html+='<div class="'+cls+'"><div class="mini-day-num">'+d2+'</div>';
-    filtered.forEach(function(s){
-      html+='<div class="mini-person '+(s.shift==='D'?'d-shift':'n-shift')+'">'+s.name.substring(0,6)+'</div>';
-    });
+    if(filterName){
+      // Show filter person highlighted + all others dimmed
+      allShifts.forEach(function(s){
+        var isMain=s.name===filterName;
+        var style=isMain?'font-weight:700;':'opacity:0.5;';
+        html+='<div class="mini-person '+(s.shift==='D'?'d-shift':'n-shift')+'" style="'+style+'">'+s.name+'</div>';
+      });
+    } else {
+      allShifts.forEach(function(s){
+        html+='<div class="mini-person '+(s.shift==='D'?'d-shift':'n-shift')+'">'+s.name+'</div>';
+      });
+    }
     html+='</div>';
   }
   html+='</div>';
@@ -793,12 +811,10 @@ function printMultiMonth(prefixes,filterName){
       if(!personRows.length){html+='<p style="color:#888;">Sem turnos.</p></div>';return;}
       var row=personRows[0];
       html+='<table><thead><tr><th style="background:#fffbef;color:#9a6800;" colspan="4">★ '+filterName+'</th></tr>';
-      html+='<tr><th>Data</th><th>Turno</th><th>Colega no dia</th><th>Pagamento</th></tr></thead><tbody>';
+      html+='<tr><th>Dia</th><th>Dia da Semana</th><th>Turno</th><th>Pagamento</th></tr></thead><tbody>';
       row.days.forEach(function(d){
-        var key=prefix+'-'+String(d.day).padStart(2,'0');
-        var companion=getCompanion(key,d.shift,filterName);
         var bg=d.shift==='D'?'background:#fffbef':'background:#eff6ff';
-        html+='<tr style="'+bg+'"><td>'+d.dateLabel+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td style="color:#555;font-size:10px;">'+companion+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';
+        html+='<tr style="'+bg+'"><td>'+d.day+'/'+monthShortFromPrefix(prefix)+'</td><td>'+d.dow+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';
       });
       html+='<tr class="total-row"><td colspan="2">Total: '+row.days.length+' turno(s)</td><td class="ok">'+(row.dP+row.nP)+' pago(s)</td><td class="pend">'+(row.dPe+row.nPe)+' pendente(s)</td></tr>';
       html+='</tbody></table>';
@@ -806,11 +822,11 @@ function printMultiMonth(prefixes,filterName){
       // Show all people
       var rows2=buildSummaryData(prefix,cfg.label);
       rows2.forEach(function(row){
-        html+='<div class="person-card"><table><thead><tr><th colspan="3">'+row.p.name+'</th></tr>';
-        html+='<tr><th>Data</th><th>Turno</th><th>Pagamento</th></tr></thead><tbody>';
+        html+='<div class="person-card"><table><thead><tr><th colspan="4">'+row.p.name+'</th></tr>';
+        html+='<tr><th>Dia</th><th>Dia da Semana</th><th>Turno</th><th>Pagamento</th></tr></thead><tbody>';
         row.days.forEach(function(d){
           var bg=d.shift==='D'?'background:#fffbef':'background:#eff6ff';
-          html+='<tr style="'+bg+'"><td>'+d.dateLabel+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';
+          html+='<tr style="'+bg+'"><td>'+d.day+'/'+monthShortFromPrefix(prefix)+'</td><td>'+d.dow+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';
         });
         html+='<tr class="total-row"><td>Total: '+row.days.length+'</td><td class="ok">'+(row.dP+row.nP)+' pago(s)</td><td class="pend">'+(row.dPe+row.nPe)+' pend.</td></tr>';
         html+='</tbody></table></div>';
