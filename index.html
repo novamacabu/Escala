@@ -457,10 +457,8 @@ function renderAll(){
         return `<div class="leg">${av}${p.name}</div>`;
       }).join('');
       // Count month totals
-    let mTotal=0,mPaid=0,mPend=0;
-    Object.keys(state).forEach(k=>{if(k.startsWith(prefix))(state[k]||[]).forEach(s=>{mTotal++;s.paid?mPaid++:mPend++;});});
-    const mStats=mTotal?`<span style="margin-left:auto;font-size:10px;display:flex;gap:8px;align-items:center;"><span style="color:var(--paid-light);">✅ ${mPaid}</span><span style="color:var(--pend-light);">❌ ${mPend}</span><span style="color:var(--muted);">${mTotal} turnos</span></span>`:'';
-    container.insertAdjacentHTML('beforeend',`<div class="month-block" id="block-${prefix}"><div class="hdr"><div class="month">${label}</div><div class="yr">2026</div>${mStats}</div><div class="leg-bar">${legItems}<div class="leg" style="margin-left:auto"><span class="ldot" style="background:var(--paid-color);border:1.5px solid var(--paid-light)"></span>Pago<span class="ldot" style="background:var(--pend-color);border:1.5px solid var(--pend-light);margin-left:6px"></span>Pendente</div></div><div class="shift-info"><span><span class="sdot" style="background:#ffd54f"></span>☀️</span><span><span class="sdot" style="background:#90caf9"></span>🌚</span></div>${READ_ONLY?'':'<div class="hint">✦ arraste para mover · toque para editar · + adicionar ✦</div>'}<div class="cal-wrap"><div class="calendar" id="cal-${prefix}"></div></div></div>`);
+    const mStats='';
+    container.insertAdjacentHTML('beforeend',`<div class="month-block" id="block-${prefix}"><div class="hdr"><div class="month">${label}</div><div class="yr">2026</div>${mStats}</div><div class="leg-bar">${legItems}<div class="leg" style="margin-left:auto"><span class="ldot" style="background:var(--paid-color);border:1.5px solid var(--paid-light)"></span>Pago<span class="ldot" style="background:var(--pend-color);border:1.5px solid var(--pend-light);margin-left:6px"></span>Pendente</div></div>${READ_ONLY?'':'<div class="hint">✦ arraste para mover · toque para editar · + adicionar ✦</div>'}<div class="cal-wrap"><div class="calendar" id="cal-${prefix}"></div></div></div>`);
       const calEl=document.getElementById('cal-'+prefix);
       DAYS_PT.forEach((d,i)=>{const h=document.createElement('div');h.className='day-hdr'+(i===0?' dom':'');h.textContent=d;calEl.appendChild(h);});
       const cells=custom?getMaioCells():buildCells(year,month0,prefix);
@@ -516,7 +514,7 @@ function makeBadge(shift,dayKey,idx){
   else{av.style.cssText=`width:18px;height:18px;border-radius:50%;background:${c};display:flex;align-items:center;justify-content:center;font-size:11px;`;av.textContent='👤';}
   b.appendChild(av);
   const nm=document.createElement('span');nm.className='bnm';nm.textContent=shift.name;b.appendChild(nm);
-  const st=document.createElement('span');st.className='stg';st.textContent=shift.shift==='N'?'🌚':'☀️';b.appendChild(st);
+  // shift symbol removed - background color indicates shift type
   const pd=document.createElement('span');pd.style.cssText='font-size:13px;margin-left:2px;flex-shrink:0;line-height:1;';pd.textContent=shift.paid?'✅':'❌';b.appendChild(pd);
   if(!READ_ONLY){setupBadgeTap(b,dayKey,idx);setupDraggable(b,dayKey,idx);}
   return b;
@@ -695,7 +693,7 @@ function buildSummaryData(prefix,label){
         const dayNum=parseInt(key.split('-')[2]);
         const cfg=MONTHS_CONFIG.find(m=>m.prefix===prefix);
         const dow=cfg?DAYS_PT[new Date(cfg.year,cfg.month0,dayNum).getDay()]:'';
-        days.push({day:dayNum,dow,shift:s.shift,paid:s.paid});
+        const dateLabel=dayNum+'/'+cfg.label.substring(0,3)+' ('+dow+')';days.push({day:dayNum,dow,dateLabel,shift:s.shift,paid:s.paid});
         if(s.shift==='D'){dT++;s.paid?dP++:dPe++;}else{nT++;s.paid?nP++:nPe++;}
       });
     });
@@ -739,6 +737,32 @@ function openPrintMonthSelector(){
   });
 }
 
+function buildMiniCalHTML(cfg,filterName){
+  var DAYS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  var html='<div class="mini-cal">';
+  DAYS.forEach(function(d,i){html+='<div class="mini-cal-hdr'+(i===0?' dom':'')+'">'+d+'</div>';});
+  var fd=new Date(cfg.year,cfg.month0,1).getDay();
+  var dim=new Date(cfg.year,cfg.month0+1,0).getDate();
+  for(var i=0;i<fd;i++)html+='<div class="mini-day empty"></div>';
+  var today=new Date();
+  for(var d2=1;d2<=dim;d2++){
+    var key=cfg.prefix+'-'+String(d2).padStart(2,'0');
+    var shifts=state[key]||[];
+    var filtered=filterName?shifts.filter(function(s){return s.name===filterName;}):shifts;
+    var hasD=filtered.some(function(s){return s.shift==='D';});
+    var hasN=filtered.some(function(s){return s.shift==='N';});
+    var isToday=today.getFullYear()===cfg.year&&today.getMonth()===cfg.month0&&today.getDate()===d2;
+    var cls='mini-day'+(hasD&&hasN?' has-dn':hasD?' has-d':hasN?' has-n':'')+(isToday?' today-hl':'');
+    html+='<div class="'+cls+'"><div class="mini-day-num">'+d2+'</div>';
+    filtered.forEach(function(s){
+      html+='<div class="mini-person '+(s.shift==='D'?'d-shift':'n-shift')+'">'+s.name.substring(0,6)+'</div>';
+    });
+    html+='</div>';
+  }
+  html+='</div>';
+  return html;
+}
+
 function printMultiMonth(prefixes,filterName){
   const css='body{font-family:Arial,sans-serif;font-size:12px;color:#111;padding:20px;}h1{font-size:22px;margin-bottom:6px;color:#9a6800;}h2{font-size:15px;margin:24px 0 8px;color:#555;border-bottom:2px solid #ddd;padding-bottom:6px;page-break-before:auto;}.card{margin-bottom:20px;page-break-inside:avoid;}table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:11px;}th{background:#f0f0f0;text-align:left;padding:6px 10px;border:1px solid #ddd;font-weight:700;}td{padding:6px 10px;border:1px solid #ddd;}tr:nth-child(even){background:#f9f9f9;}.total-row{font-weight:700;background:#f0f0f0!important;}@media print{@page{size:A4 portrait;margin:15mm;}button{display:none!important;}body{padding:0;}h2{page-break-before:auto;}}';
   let html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Escala Cuidadores 2026</title><style>'+css+'</style></head><body>';
@@ -750,12 +774,14 @@ function printMultiMonth(prefixes,filterName){
     var filtered=filterName?rows.filter(function(r){return r.p.name===filterName;}):rows;
     html+='<div class="month-section"><h2>'+cfg.label+' 2026</h2>';
     if(!filtered.length){html+='<p style="color:#888;font-style:italic;">Nenhum turno registrado.</p></div>';return;}
+    // Add mini calendar for this month
+    html+=buildMiniCalHTML(cfg,filterName||null);
     filtered.forEach(function(row){
       var p=row.p,dT=row.dT,nT=row.nT,dP=row.dP,nP=row.nP,dPe=row.dPe,nPe=row.nPe,days=row.days;
       var isHL=filterName&&p.name===filterName;
       html+='<div class="person-card"><table><thead><tr><th colspan="4" style="'+(isHL?'background:#fffbef;color:#9a6800;':'')+'">'+( isHL?'★ ':'')+p.name+'</th></tr><tr><th style="width:10%">Dia</th><th style="width:25%">Dia da Semana</th><th style="width:30%">Turno</th><th style="width:35%">Pagamento</th></tr></thead><tbody>';
-      days.forEach(function(d){var cls=isHL?' class="highlight"':'';html+='<tr'+cls+'><td>'+d.day+'</td><td>'+d.dow+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';});
-      html+='<tr class="total-row"><td colspan="2">TOTAL</td><td>'+(dT+nT)+' turno(s)</td><td>'+(dP+nP)+' pago(s) · '+(dPe+nPe)+' pend.</td></tr>';
+      days.forEach(function(d){var cls=isHL?' class="highlight"':'';var bg=d.shift==='D'?'background:#fffbef;':'background:#eff6ff;';html+='<tr'+cls+' style="'+bg+'"><td>'+(d.dateLabel||d.day)+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';});
+      html+='<tr class="total-row"><td>TOTAL: '+(dT+nT)+' turno(s)</td><td>'+(dP+nP)+' pago(s)</td><td class="pend">'+(dPe+nPe)+' pendente(s)</td></tr>';
       html+='</tbody></table></div>';
     });
     html+='</div>';
@@ -916,7 +942,7 @@ function openMonthWASheet(){
 }
 
 function gerarPDFEscala(cfg,filterName){
-  const css='body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:16px;}h1{font-size:18px;color:#9a6800;margin-bottom:4px;}h2{font-size:13px;color:#555;border-bottom:2px solid #ddd;padding-bottom:4px;margin:16px 0 6px;page-break-before:auto;}table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:10px;table-layout:fixed;}th{background:#f5f0e8;text-align:left;padding:5px 8px;border:1px solid #ddd;font-weight:700;word-wrap:break-word;}td{padding:5px 8px;border:1px solid #ddd;word-wrap:break-word;}.ok{color:#1a7a4a;font-weight:700;}.pend{color:#c0392b;font-weight:700;}.total-row{font-weight:700;background:#f0ece0!important;}.highlight{background:#fffbef!important;border-left:4px solid #9a6800!important;}.month-section{page-break-inside:avoid;margin-bottom:24px;}.person-card{page-break-inside:avoid;margin-bottom:16px;}@media print{@page{size:A4 portrait;margin:12mm;}button{display:none!important;}body{font-size:10px;}.month-section{page-break-before:auto;}}';
+  const css='body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:16px;}h1{font-size:18px;color:#9a6800;margin-bottom:4px;}h2{font-size:13px;color:#555;border-bottom:2px solid #ddd;padding-bottom:4px;margin:16px 0 6px;page-break-before:auto;}table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:10px;table-layout:fixed;}th{background:#f5f0e8;text-align:left;padding:5px 8px;border:1px solid #ddd;font-weight:700;word-wrap:break-word;}td{padding:5px 8px;border:1px solid #ddd;word-wrap:break-word;}.ok{color:#1a7a4a;font-weight:700;}.pend{color:#c0392b;font-weight:700;}.total-row{font-weight:700;background:#f0ece0!important;}.highlight{background:#fffbef!important;border-left:4px solid #9a6800!important;}.month-section{page-break-inside:avoid;margin-bottom:24px;}.person-card{page-break-inside:avoid;margin-bottom:16px;}.mini-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:12px;border:1px solid #ddd;border-radius:6px;overflow:hidden;}.mini-cal-hdr{background:#f5f0e8;text-align:center;padding:4px 2px;font-size:9px;font-weight:700;color:#555;}.mini-cal-hdr.dom{color:#c0392b;}.mini-day{padding:4px 3px;text-align:center;font-size:10px;min-height:38px;border:1px solid #eee;position:relative;vertical-align:top;}.mini-day.empty{background:#fafafa;}.mini-day.has-d{background:#fffbef;}.mini-day.has-n{background:#eff6ff;}.mini-day.has-dn{background:linear-gradient(135deg,#fffbef 50%,#eff6ff 50%);}.mini-day.today-hl{border:2px solid #9a6800!important;}.mini-day-num{font-weight:700;font-size:10px;}.mini-day-name{font-size:8px;color:#666;display:block;}.mini-person{font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;padding:1px 2px;border-radius:2px;}.mini-person.d-shift{background:#ffd54f44;}.mini-person.n-shift{background:#90caf944;}@media print{@page{size:A4 portrait;margin:12mm;}button{display:none!important;}body{font-size:10px;}.month-section{page-break-before:auto;}}';
   // Always show ALL people, highlight selected
   const rows=buildSummaryData(cfg.prefix,cfg.label);
   let html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Escala '+cfg.label+' 2026</title><style>'+css+'</style></head><body>';
@@ -924,6 +950,7 @@ function gerarPDFEscala(cfg,filterName){
   if(filterName)html+='<p style="background:#fffbef;border-left:4px solid #9a6800;padding:6px 10px;font-size:11px;margin-bottom:8px;">Destaque: <b>'+filterName+'</b></p>';
   html+='<p style="color:#888;font-size:10px;margin-bottom:12px;">Gerado em '+new Date().toLocaleString('pt-BR')+'</p>';
   if(!rows.length){html+='<p style="color:#888;">Nenhum turno registrado para este mês.</p>';}
+  html+=buildMiniCalHTML(cfg,filterName||null);
   rows.forEach(function(row){
     var p=row.p,dT=row.dT,nT=row.nT,dP=row.dP,nP=row.nP,dPe=row.dPe,nPe=row.nPe,days=row.days;
     var isHL=filterName&&p.name===filterName;
@@ -932,9 +959,9 @@ function gerarPDFEscala(cfg,filterName){
     html+='<table style="table-layout:fixed;width:100%;"><thead><tr><th style="width:10%">Dia</th><th style="width:25%">Dia Sem.</th><th style="width:30%">Turno</th><th style="width:35%">Pagamento</th></tr></thead><tbody>';
     days.forEach(function(d){
       var bg=isHL?'background:#fffbef;':'';
-      html+='<tr style="'+bg+'"><td>'+d.day+'</td><td>'+d.dow+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';
+      var shiftBg=d.shift==='D'?'background:#fffbef;':'background:#eff6ff;';html+='<tr style="'+shiftBg+'"><td>'+(d.dateLabel||d.day)+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';
     });
-    html+='<tr class="total-row"><td colspan="2">Total</td><td>'+(dT+nT)+' turno(s)</td><td>'+(dP+nP)+' p · '+(dPe+nPe)+' pend.</td></tr>';
+    html+='<tr class="total-row"><td>Total: '+(dT+nT)+' turno(s)</td><td><span class="ok">'+(dP+nP)+' pago(s)</span></td><td><span class="pend">'+(dPe+nPe)+' pendente(s)</span></td></tr>';
     html+='</tbody></table></div>';
   });
   html+='<br><p style="color:#555;font-size:10px;">Salve como PDF e encaminhe pelo WhatsApp 📲</p>';
