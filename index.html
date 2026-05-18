@@ -737,6 +737,10 @@ function openPrintMonthSelector(){
   });
 }
 
+function getReportCSS(){
+  return 'body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:16px;}h1{font-size:20px;color:#9a6800;margin-bottom:4px;}h2{font-size:14px;color:#555;border-bottom:2px solid #ddd;padding-bottom:4px;margin:16px 0 8px;}.month-section{margin-bottom:24px;page-break-inside:avoid;}.person-card{margin-bottom:12px;page-break-inside:avoid;}table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:10px;}th{background:#f5f0e8;text-align:left;padding:5px 8px;border:1px solid #ddd;font-weight:700;}td{padding:5px 8px;border:1px solid #ddd;}.ok{color:#1a7a4a!important;font-weight:700;}.pend{color:#c0392b!important;font-weight:700;}.total-row{font-weight:700;background:#f0ece0!important;}.mini-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:10px;border:1px solid #ddd;border-radius:4px;overflow:hidden;font-size:9px;}.mini-cal-hdr{background:#f5f0e8;text-align:center;padding:3px 1px;font-weight:700;color:#555;}.mini-cal-hdr.dom{color:#c0392b;}.mini-day{padding:3px 2px;text-align:center;min-height:32px;border:1px solid #eee;}.mini-day.empty{background:#fafafa;}.mini-day.has-d{background:#fffbef;}.mini-day.has-n{background:#eff6ff;}.mini-day.has-dn{background:linear-gradient(135deg,#fffbef 50%,#eff6ff 50%);}.mini-day.today-hl{outline:2px solid #9a6800;}.mini-day-num{font-weight:700;font-size:9px;}.mini-person{font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:1px;}.d-shift{color:#7a5200;}.n-shift{color:#1a4a7a;}@media print{@page{size:A4 portrait;margin:12mm;}button{display:none!important;}}';
+}
+
 function buildMiniCalHTML(cfg,filterName){
   var DAYS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   var html='<div class="mini-cal">';
@@ -763,45 +767,61 @@ function buildMiniCalHTML(cfg,filterName){
   return html;
 }
 
+function getCompanion(key, shift, personName){
+  // Get the other person sharing this day
+  var shifts = state[key]||[];
+  // If diurno, show who is noturno same day
+  // If noturno, show who is diurno same day
+  var otherShift = shift==='D'?'N':'D';
+  var companion = shifts.filter(function(s){return s.shift===otherShift && s.name!==personName;});
+  return companion.map(function(s){return s.name;}).join(', ');
+}
+
 function printMultiMonth(prefixes,filterName){
-  const css='body{font-family:Arial,sans-serif;font-size:12px;color:#111;padding:20px;}h1{font-size:22px;margin-bottom:6px;color:#9a6800;}h2{font-size:15px;margin:24px 0 8px;color:#555;border-bottom:2px solid #ddd;padding-bottom:6px;page-break-before:auto;}.card{margin-bottom:20px;page-break-inside:avoid;}table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:11px;}th{background:#f0f0f0;text-align:left;padding:6px 10px;border:1px solid #ddd;font-weight:700;}td{padding:6px 10px;border:1px solid #ddd;}tr:nth-child(even){background:#f9f9f9;}.total-row{font-weight:700;background:#f0f0f0!important;}@media print{@page{size:A4 portrait;margin:15mm;}button{display:none!important;}body{padding:0;}h2{page-break-before:auto;}}';
-  let html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Escala Cuidadores 2026</title><style>'+css+'</style></head><body>';
+  var CSS=getReportCSS();
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Escala Cuidadores 2026</title><style>'+CSS+'</style></head><body>';
   html+='<h1>Escala de Cuidadores 2026'+(filterName?' — '+filterName:'')+'</h1>';
-  html+='<p style="color:#888;font-size:11px;margin-bottom:20px;">Gerado em '+new Date().toLocaleString('pt-BR')+'</p>';
+  html+='<p style="color:#888;font-size:11px;margin-bottom:16px;">Gerado em '+new Date().toLocaleString('pt-BR')+'</p>';
   prefixes.forEach(function(prefix){
     var cfg=MONTHS_CONFIG.find(function(m){return m.prefix===prefix;});if(!cfg)return;
-    var rows=buildSummaryData(prefix,cfg.label);
-    var filtered=filterName?rows.filter(function(r){return r.p.name===filterName;}):rows;
     html+='<div class="month-section"><h2>'+cfg.label+' 2026</h2>';
-    if(!filtered.length){html+='<p style="color:#888;font-style:italic;">Nenhum turno registrado.</p></div>';return;}
-    // Add mini calendar for this month
     html+=buildMiniCalHTML(cfg,filterName||null);
-    filtered.forEach(function(row){
-      var p=row.p,dT=row.dT,nT=row.nT,dP=row.dP,nP=row.nP,dPe=row.dPe,nPe=row.nPe,days=row.days;
-      var isHL=filterName&&p.name===filterName;
-      html+='<div class="person-card"><table><thead><tr><th colspan="4" style="'+(isHL?'background:#fffbef;color:#9a6800;':'')+'">'+( isHL?'★ ':'')+p.name+'</th></tr><tr><th style="width:10%">Dia</th><th style="width:25%">Dia da Semana</th><th style="width:30%">Turno</th><th style="width:35%">Pagamento</th></tr></thead><tbody>';
-      days.forEach(function(d){var cls=isHL?' class="highlight"':'';var bg=d.shift==='D'?'background:#fffbef;':'background:#eff6ff;';html+='<tr'+cls+' style="'+bg+'"><td>'+(d.dateLabel||d.day)+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';});
-      html+='<tr class="total-row"><td>TOTAL: '+(dT+nT)+' turno(s)</td><td>'+(dP+nP)+' pago(s)</td><td class="pend">'+(dPe+nPe)+' pendente(s)</td></tr>';
-      html+='</tbody></table></div>';
-    });
+    if(filterName){
+      // Show only selected person with companion info
+      var rows=buildSummaryData(prefix,cfg.label);
+      var personRows=rows.filter(function(r){return r.p.name===filterName;});
+      if(!personRows.length){html+='<p style="color:#888;">Sem turnos.</p></div>';return;}
+      var row=personRows[0];
+      html+='<table><thead><tr><th style="background:#fffbef;color:#9a6800;" colspan="4">★ '+filterName+'</th></tr>';
+      html+='<tr><th>Data</th><th>Turno</th><th>Colega no dia</th><th>Pagamento</th></tr></thead><tbody>';
+      row.days.forEach(function(d){
+        var key=prefix+'-'+String(d.day).padStart(2,'0');
+        var companion=getCompanion(key,d.shift,filterName);
+        var bg=d.shift==='D'?'background:#fffbef':'background:#eff6ff';
+        html+='<tr style="'+bg+'"><td>'+d.dateLabel+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td style="color:#555;font-size:10px;">'+companion+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';
+      });
+      html+='<tr class="total-row"><td colspan="2">Total: '+row.days.length+' turno(s)</td><td class="ok">'+(row.dP+row.nP)+' pago(s)</td><td class="pend">'+(row.dPe+row.nPe)+' pendente(s)</td></tr>';
+      html+='</tbody></table>';
+    } else {
+      // Show all people
+      var rows2=buildSummaryData(prefix,cfg.label);
+      rows2.forEach(function(row){
+        html+='<div class="person-card"><table><thead><tr><th colspan="3">'+row.p.name+'</th></tr>';
+        html+='<tr><th>Data</th><th>Turno</th><th>Pagamento</th></tr></thead><tbody>';
+        row.days.forEach(function(d){
+          var bg=d.shift==='D'?'background:#fffbef':'background:#eff6ff';
+          html+='<tr style="'+bg+'"><td>'+d.dateLabel+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';
+        });
+        html+='<tr class="total-row"><td>Total: '+row.days.length+'</td><td class="ok">'+(row.dP+row.nP)+' pago(s)</td><td class="pend">'+(row.dPe+row.nPe)+' pend.</td></tr>';
+        html+='</tbody></table></div>';
+      });
+    }
     html+='</div>';
   });
   html+='<br><button onclick="window.print()" style="padding:12px 28px;background:#9a6800;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Imprimir / Salvar PDF</button></body></html>';
-  // Create hidden iframe to print without popup
-  // Open in new tab - user taps print from there
   var w=window.open('about:blank','_blank');
-  if(w){
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-  } else {
-    // Fallback: download as HTML file
-    var blob=new Blob([html],{type:'text/html;charset=utf-8'});
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement('a');a.href=url;a.download='escala.html';
-    document.body.appendChild(a);a.click();
-    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
-  }
+  if(w){w.document.open();w.document.write(html);w.document.close();}
+  else{var blob=new Blob([html],{type:'text/html;charset=utf-8'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='escala.html';document.body.appendChild(a);a.click();setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);}
 }
 
 function printSummary(filterName){
