@@ -834,7 +834,12 @@ function printMultiMonth(prefixes,filterName){
     }
     html+='</div>';
   });
-  html+='<br><button onclick="window.print()" style="padding:12px 28px;background:#9a6800;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Imprimir / Salvar PDF</button></body></html>';
+  html+='<br><div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">';
+  html+='<button onclick="window.print()" style="padding:12px 28px;background:#9a6800;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">🖨️ Imprimir / Salvar PDF</button>';
+  html+='<button onclick="shareDoc()" style="padding:12px 28px;background:#25d366;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">📲 Compartilhar no WhatsApp</button>';
+  html+='</div>';
+  html+='<script>function shareDoc(){if(navigator.share){navigator.share({title:"Escala Cuidadores 2026",text:"Segue a escala de cuidadores.",url:window.location.href});}else{window.open("https://wa.me/?text="+encodeURIComponent(window.location.href),"_blank");}}<\/script>';
+  html+='</body></html>';
   var w=window.open('about:blank','_blank');
   if(w){w.document.open();w.document.write(html);w.document.close();}
   else{var blob=new Blob([html],{type:'text/html;charset=utf-8'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='escala.html';document.body.appendChild(a);a.click();setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);}
@@ -962,17 +967,6 @@ function openMonthWASheet(){
     };
     body.appendChild(pdfBtn);
 
-    const sendBtn=document.createElement('button');sendBtn.className='confirm-btn';sendBtn.style.background='#25d366';sendBtn.textContent='📲 Enviar texto por WhatsApp';
-    function updateSendBtn(){if(sendAll)sendBtn.textContent=`📲 Texto para todos (${people.filter(p=>getPhone(p.name)).length})`;else if(selectedPeople.size>1)sendBtn.textContent=`📲 Texto para ${selectedPeople.size} pessoas`;else if(selectedPeople.size===1){const nm=[...selectedPeople][0];sendBtn.textContent=`📲 Texto para ${nm}`;const num=getPhone(nm);if(num)phoneInp.value=num;}else sendBtn.textContent='📲 Enviar texto por WhatsApp';}
-    sendBtn.onclick=()=>{
-      if(sendAll){
-        const targets=people.filter(p=>getPhone(p.name));if(!targets.length){showToast('Nenhum número cadastrado');return;}
-        let i=0;function next(){if(i>=targets.length){showToast(`✅ ${i} enviados`);return;}const p=targets[i];window.open(`https://wa.me/${p.phone.replace(/\D/g,'')}?text=${encodeURIComponent(buildMessage(p.name))}`,'_blank');i++;setTimeout(next,800);}next();
-      }else if(selectedPeople.size>1){
-        const targets=[...selectedPeople];let i=0;function next2(){if(i>=targets.length){showToast(`✅ ${i} enviados`);return;}const nm=targets[i];const num=getPhone(nm).replace(/\D/g,'');if(!num){showToast(`⚠️ ${nm} sem número`);i++;next2();return;}window.open(`https://wa.me/${num}?text=${encodeURIComponent(buildMessage(nm))}`,'_blank');i++;setTimeout(next2,800);}next2();
-      }else{const num=(phoneInp.value||getPhone(selectedPeople.size===1?[...selectedPeople][0]:'')||'').replace(/\D/g,'');if(!num){showToast('Digite um número');return;}window.open(`https://wa.me/${num}?text=${encodeURIComponent(ta.value)}`,'_blank');}
-    };
-    body.appendChild(sendBtn);
     const cancelWA=document.createElement('button');cancelWA.className='cancel-btn';cancelWA.textContent='✕ Fechar';cancelWA.onclick=closeSheet;body.appendChild(cancelWA);
   });
 }
@@ -1001,7 +995,12 @@ function gerarPDFEscala(cfg,filterName){
     html+='</tbody></table></div>';
   });
   html+='<br><p style="color:#555;font-size:10px;">Salve como PDF e encaminhe pelo WhatsApp 📲</p>';
-  html+='<br><button onclick="window.print()" style="padding:10px 24px;background:#9a6800;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">📄 Salvar como PDF</button></body></html>';
+  html+='<br><div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">';
+  html+='<button onclick="window.print()" style="padding:10px 24px;background:#9a6800;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">🖨️ Imprimir / Salvar PDF</button>';
+  html+='<button onclick="shareDoc()" style="padding:10px 24px;background:#25d366;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">📲 Compartilhar no WhatsApp</button>';
+  html+='</div>';
+  html+='<script>function shareDoc(){if(navigator.share){navigator.share({title:"Escala Cuidadores 2026",text:"Segue a escala.",url:window.location.href});}else{window.open("https://wa.me/?text="+encodeURIComponent(window.location.href),"_blank");}}<\/script>';
+  html+='</body></html>';
   var w=window.open('about:blank','_blank');
   if(w){w.document.open();w.document.write(html);w.document.close();}
   else{
