@@ -972,45 +972,8 @@ function openMonthWASheet(){
 }
 
 function gerarPDFEscala(cfg,filterName){
-  const css='body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:16px;}h1{font-size:18px;color:#9a6800;margin-bottom:4px;}h2{font-size:13px;color:#555;border-bottom:2px solid #ddd;padding-bottom:4px;margin:16px 0 6px;page-break-before:auto;}table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:10px;table-layout:fixed;}th{background:#f5f0e8;text-align:left;padding:5px 8px;border:1px solid #ddd;font-weight:700;word-wrap:break-word;}td{padding:5px 8px;border:1px solid #ddd;word-wrap:break-word;}.ok{color:#1a7a4a;font-weight:700;}.pend{color:#c0392b;font-weight:700;}.total-row{font-weight:700;background:#f0ece0!important;}.highlight{background:#fffbef!important;border-left:4px solid #9a6800!important;}.month-section{page-break-inside:avoid;margin-bottom:24px;}.person-card{page-break-inside:avoid;margin-bottom:16px;}.mini-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:12px;border:1px solid #ddd;border-radius:6px;overflow:hidden;}.mini-cal-hdr{background:#f5f0e8;text-align:center;padding:4px 2px;font-size:9px;font-weight:700;color:#555;}.mini-cal-hdr.dom{color:#c0392b;}.mini-day{padding:4px 3px;text-align:center;font-size:10px;min-height:38px;border:1px solid #eee;position:relative;vertical-align:top;}.mini-day.empty{background:#fafafa;}.mini-day.has-d{background:#fffbef;}.mini-day.has-n{background:#eff6ff;}.mini-day.has-dn{background:linear-gradient(135deg,#fffbef 50%,#eff6ff 50%);}.mini-day.today-hl{border:2px solid #9a6800!important;}.mini-day-num{font-weight:700;font-size:10px;}.mini-day-name{font-size:8px;color:#666;display:block;}.mini-person{font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;padding:1px 2px;border-radius:2px;}.mini-person.d-shift{background:#ffd54f44;}.mini-person.n-shift{background:#90caf944;}@media print{@page{size:A4 portrait;margin:12mm;}button{display:none!important;}body{font-size:10px;}.month-section{page-break-before:auto;}}';
-  // Always show ALL people, highlight selected
-  const rows=buildSummaryData(cfg.prefix,cfg.label);
-  let html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Escala '+cfg.label+' 2026</title><style>'+css+'</style></head><body>';
-  html+='<h1>Escala de Cuidadores — '+cfg.label+' 2026</h1>';
-  if(filterName)html+='<p style="background:#fffbef;border-left:4px solid #9a6800;padding:6px 10px;font-size:11px;margin-bottom:8px;">Destaque: <b>'+filterName+'</b></p>';
-  html+='<p style="color:#888;font-size:10px;margin-bottom:12px;">Gerado em '+new Date().toLocaleString('pt-BR')+'</p>';
-  if(!rows.length){html+='<p style="color:#888;">Nenhum turno registrado para este mês.</p>';}
-  html+=buildMiniCalHTML(cfg,filterName||null);
-  rows.forEach(function(row){
-    var p=row.p,dT=row.dT,nT=row.nT,dP=row.dP,nP=row.nP,dPe=row.dPe,nPe=row.nPe,days=row.days;
-    var isHL=filterName&&p.name===filterName;
-    html+='<div style="page-break-inside:avoid;margin-bottom:16px;">';
-    html+='<h2 style="'+(isHL?'color:#9a6800;font-weight:900;font-size:15px;':'')+'">'+(isHL?'★ ':'')+p.name+'</h2>';
-    html+='<table style="table-layout:fixed;width:100%;"><thead><tr><th style="width:10%">Dia</th><th style="width:25%">Dia Sem.</th><th style="width:30%">Turno</th><th style="width:35%">Pagamento</th></tr></thead><tbody>';
-    days.forEach(function(d){
-      var bg=isHL?'background:#fffbef;':'';
-      var shiftBg=d.shift==='D'?'background:#fffbef;':'background:#eff6ff;';html+='<tr style="'+shiftBg+'"><td>'+(d.dateLabel||d.day)+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';
-    });
-    html+='<tr class="total-row"><td>Total: '+(dT+nT)+' turno(s)</td><td><span class="ok">'+(dP+nP)+' pago(s)</span></td><td><span class="pend">'+(dPe+nPe)+' pendente(s)</span></td></tr>';
-    html+='</tbody></table></div>';
-  });
-  html+='<br><p style="color:#555;font-size:10px;">Salve como PDF e encaminhe pelo WhatsApp 📲</p>';
-  html+='<br><div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">';
-  html+='<button onclick="window.print()" style="padding:10px 24px;background:#9a6800;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">🖨️ Imprimir / Salvar PDF</button>';
-  html+='<button onclick="shareDoc()" style="padding:10px 24px;background:#25d366;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">📲 Compartilhar no WhatsApp</button>';
-  html+='</div>';
-  html+='<script>function shareDoc(){if(navigator.share){navigator.share({title:"Escala Cuidadores 2026",text:"Segue a escala.",url:window.location.href});}else{window.open("https://wa.me/?text="+encodeURIComponent(window.location.href),"_blank");}}<\/script>';
-  html+='</body></html>';
-  var w=window.open('about:blank','_blank');
-  if(w){w.document.open();w.document.write(html);w.document.close();}
-  else{
-    var blob=new Blob([html],{type:'text/html;charset=utf-8'});
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement('a');a.href=url;a.download='escala-'+cfg.label+'.html';
-    document.body.appendChild(a);a.click();
-    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
-  }
-  showToast('📄 Abrindo PDF — toque em Imprimir para salvar');
+  // Use exact same function as printMultiMonth with single month
+  printMultiMonth([cfg.prefix], filterName||null);
 }
 function openReminderSheet(){
   openSheet('Lembretes','Lembrete de Turno',body=>{
