@@ -816,7 +816,7 @@ function printMultiMonth(prefixes,filterName){
         var bg=d.shift==='D'?'background:#fffbef':'background:#eff6ff';
         html+='<tr style="'+bg+'"><td>'+d.day+'/'+monthShortFromPrefix(prefix)+'</td><td>'+d.dow+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';
       });
-      html+='<tr class="total-row"><td colspan="2">Total: '+row.days.length+' turno(s)</td><td class="ok">'+(row.dP+row.nP)+' pago(s)</td><td class="pend">'+(row.dPe+row.nPe)+' pendente(s)</td></tr>';
+      html+='<tr class="total-row"><td colspan="4" style="text-align:right;">Total: '+row.days.length+' turnos &nbsp;|&nbsp; '+(row.dP+row.nP)+' pago(s) &nbsp;|&nbsp; '+(row.dPe+row.nPe)+' pendente(s)</td></tr>';
       html+='</tbody></table>';
     } else {
       // Show all people
@@ -828,7 +828,7 @@ function printMultiMonth(prefixes,filterName){
           var bg=d.shift==='D'?'background:#fffbef':'background:#eff6ff';
           html+='<tr style="'+bg+'"><td>'+d.day+'/'+monthShortFromPrefix(prefix)+'</td><td>'+d.dow+'</td><td>'+(d.shift==='D'?'Diurno':'Noturno')+'</td><td class="'+(d.paid?'ok':'pend')+'">'+(d.paid?'Pago':'Pendente')+'</td></tr>';
         });
-        html+='<tr class="total-row"><td>Total: '+row.days.length+'</td><td class="ok">'+(row.dP+row.nP)+' pago(s)</td><td class="pend">'+(row.dPe+row.nPe)+' pend.</td></tr>';
+        html+='<tr class="total-row"><td colspan="4" style="text-align:right;">Total: '+row.days.length+' turnos &nbsp;|&nbsp; '+(row.dP+row.nP)+' pago(s) &nbsp;|&nbsp; '+(row.dPe+row.nPe)+' pend.</td></tr>';
         html+='</tbody></table></div>';
       });
     }
